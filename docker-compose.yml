@@ -1,0 +1,55 @@
+version: "3" #Definomos la version de docker compose
+networks: #Definimos una red,
+    thridAge-wordpress-6.1.1-net: #Nombre de la red
+        driver: bridge #drive (este va por defecto)
+
+services: #Defino los servicios o contenedores que se comunicarán entre si gracias a docker-compose
+    mysql: #Servicio de base de datos resuelto por mysql
+        image: mysql:5.7
+        container_name: thridAge-wordpress-6.1.1-mysql # Le ponemos nombre al contenedor, lo usaremos patra hacer las conexiones entre wordpress y mysql
+        tty: true #Permite ejecutar comando desde terminal local al contenedor (SQL de local a SQL contenedor )
+        ports:
+            - "4208:3306" #puerto local: puerto contenedor
+        volumes:
+            - "./var/libclea/mysql/:/var/lib/mysql" #creo directorios, en local:en contenedor (se copia todo lo que instale docker desde la imagen al contenedor , a la carpeta local )
+        environment:
+            MYSQL_ROOT_PASSWORD: "${DB_ROOT_PW}"
+            MYSQL_DATABASE: "${DB_NAME}"
+            MYSQL_USER: "${DB_USER}"
+            MYSQL_PASSWORD: "${DB_PW}"
+        networks:
+            - thridAge-wordpress-6.1.1-net  #Nombre de la red en que se levanta el servicio /Sergmento
+
+    server: #Noombre del Servicio de wordpres, es el nombre que usaré para referirme a al servicio o contenedor de wordpress
+        image: wordpress:latest #Version de wordpress, la última
+        container_name: thridAge-wordpress-6.1.1  #Nombre del contenedor
+        ports:
+            - "4282:80"  #redirecciono el puerto, el local y el del contenedor que habla con mysql
+        volumes:
+            - "./var/www/html/:/var/www/html"  #volumenes para persistir datos y cambios de wordpress
+        environment:
+            WORDPRESS_DB_USER: miusuario
+            WORDPRESS_DB_PASSWORD: mipassword
+            WORDPRESS_DB_NAME: wordpress
+            WORDPRESS_DB_HOST: thridAge-wordpress-6.1.1-mysql # ruta o nombre del servicio mysql
+        depends_on: #Dependencias de contenedores, este contenedor depende de los containers    de esta lista
+            - mysql # wordpress lo necesita para hacer las conexiones, wordpress se comecta con este
+        networks:
+            - thridAge-wordpress-6.1.1-net #Red donde se engancha o corre este contenedor
+
+    phpmyadmin: #MOdulo, servicio o imagen para cliente de DB
+        image: phpmyadmin/phpmyadmin
+        container_name: thridAge-phpmyadmin
+        ports:
+            - "4283:80"
+        environment:
+            PMA_HOST: thridAge-wordpress-6.1.1-mysql
+            MYSQL_ROOT_PASSWORD: 1234
+        depends_on:
+            - mysql
+        networks:
+            - thridAge-wordpress-6.1.1-net
+
+
+#FUENTE: https://danisanchez.net/instalar-wordpress-mysql-phpmyadmin-desde-docker-compose/
+
